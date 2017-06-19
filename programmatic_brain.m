@@ -2,22 +2,34 @@ function programmatic_brain
 
 close
 
+%MAKE LINES TRANSLUCENT? add info about half brain; add front back rotator;
+%legend in bottom
 %make adjacency matrix
-V = [0 1 0 1 1 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 1 1 1 0];
+V = [0	1	0	1	0	0	0	0	1	0	0	0	0	1	0	0	0	0	1	1	0	0	1	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	1	0	1	1	1	0	0	0	0	0];
 
-M = triu(ones(8)); %based on number of nodes; way to calculate this easier I'm sure
+info
+
+M = triu(ones(10)); %based on number of nodes; way to calculate this easier I'm sure
 M(M==1) = V;
 A = M+M'-diag(diag(M)); %can use this without vector method
 B = any(A); %check to see if any elements = 0
 D = distance_bin(A);
-d1 = D(1:5,1:5);
-d2 = D(5:8,5:8);
+d1 = D(6:9,6:9); %motor network
+d2 = D(3:6,3:6); %visual network
+d3 = D(1:3,1:3); %language network
+% d3 = D(1:3,1:3)
 [lambda,E,~,~,d] = charpath(D,0,1);
 [~,e1] = charpath(d1,0,1);
 [~,e2] = charpath(d2,0,1);
+[~,e3] = charpath(d3,0,1);
+
+maxE=E;
+maxe1=e1;
+maxe2=e2;
+maxe3=e3;
 
 %load nodes - x, y, z, colour, size, label
-fid=fopen('AAL8_nodes');
+fid=fopen('AAL10');
 data = textscan(fid,'%f %f %f %f %f %s','CommentStyle','#');
 fclose(fid);
 surf.sphere = [cell2mat(data(1)) cell2mat(data(2)) cell2mat(data(3)) cell2mat(data(4)) cell2mat(data(5))];
@@ -26,47 +38,70 @@ surf.label = data{6};
 surf.nsph = size(surf.sphere,1); %number nodes
 labels = surf.label.';
 
-f = figure('Visible','on',...
-    'Position',[0 0 1600 900]);
+f = figure('Name','Simulate a stroke','Visible','on',...
+    'Position',[0 0 800 600]);
 %position = [left bottom width height]
 
 %  Construct the components.
-p = uipanel(f,'Title','Select a node','Position',[.05 .55 .15 .4]);
+p = uipanel(f,'Title','Select area(s)','Position',[.05 .33 .15 .4],...
+    'BackgroundColor',[1 1 1],'FontSize',12);
 
 lb = uicontrol(p,'Style','listbox','String',labels,...
     'Max',2,'Min',0,'Value',[],'Units','normalized',...
-    'Position', [.02 .1 .95 .9],...
-    'Callback',@lb_Callback);
+    'Position', [.02 .18 .95 .8],'BackgroundColor',[1 1 1],...
+    'Callback',@lb_Callback,'FontSize',10);
 
-p2 = uipanel(f,'Title','Network efficiency','Position',[.2 .1 .3 .2]);
+p2 = uipanel(f,'Title','Network efficiency','Position',[.05 .1 .31 .2],...
+    'BackgroundColor',[1 1 1],'FontSize',12);
 
-% text2 = uicontrol(f,'Style','text','String',E,...
-%     'Units','normalized','Position',[0 .3 .2 .1]);
+p3 = uipanel(f,'Title','Area information','Position',[.21 .33 .15 .4],...
+    'BackgroundColor',[1 1 1],'FontSize',12);
 
-text3 = uicontrol(f,'Style','text','String','Global efficiency',...
-    'Units','normalized','Position',[0 .4 0.2 0.1]);
+p4 = uipanel(f,'Title','How to play','Position',[.05 .75 .31 .2],...
+    'BackgroundColor',[1 1 1],'FontSize',12);
 
-visualheader = uipanel(p2,'Title','Visual Network','Position',[.03 .49 .3 .4]);
+visualheader = uipanel(p2,'Title','Visual Network','Position',[.03 .55 .3 .4],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
 
-motorheader = uipanel(p2,'Title','Motor Network','Position',[.35 .49 .3 .4]);
+motorheader = uipanel(p2,'Title','Motor Network','Position',[.35 .55 .3 .4],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
 
-brainheader = uipanel(p2,'Title','Whole brain','Position',[.03 .05 .9 .4]);
+languageheader = uipanel(p2,'Title','Language Network','Position',[.67 .55 .3 .4],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
 
-motortext = uicontrol(motorheader,'Style','text','String',e1,...
-    'Units','normalized','Position',[.25 .2 .5 .5]);
+brainheader = uipanel(p2,'Title','Whole brain','Position',[.03 .07 .94 .4],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
 
-visualtext = uicontrol(visualheader,'Style','text','String',e2,...
-    'Units','normalized','Position',[.25 .2 .5 .5]);
+nodeinfo = uicontrol(p3,'Style','text','String',caudate,...
+    'HorizontalAlignment','left','BackgroundColor',[1 1 1],...
+        'Units','normalized','Position',[.02 .04 .95 .95]);
+    
+instructiontext = uicontrol(p4,'Style','text','String',instructions,...
+        'HorizontalAlignment','left','FontSize',10,'FontName','Helvetica',...
+        'BackgroundColor',[1 1 1],...
+        'Units','normalized','Position',[.02 .04 .95 .95]);
 
-braintext = uicontrol(brainheader,'Style','text','String',E,...
-    'Units','normalized','Position',[.25 .2 .5 .5]);
+motortext = uicontrol(motorheader,'Style','text','String',sprintf('%d%%',e1/maxe1*100),...
+    'Units','normalized','Position',[.25 .3 .5 .5],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
 
-resetbutton = uicontrol(f,'Style','pushbutton','String','Reset',...
-    'Units','normalized','Position',[0 .2 .1 .1],...
+visualtext = uicontrol(visualheader,'Style','text','String',sprintf('%d%%',e2/maxe2*100),...
+    'Units','normalized','Position',[.25 .3 .5 .5],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
+
+languagetext = uicontrol(languageheader,'Style','text','String',sprintf('%d%%',e3/maxe3*100),...
+    'Units','normalized','Position',[.25 .3 .5 .5],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
+
+braintext = uicontrol(brainheader,'Style','text','String',sprintf('%d%%',E/maxE*100),...
+    'Units','normalized','Position',[.25 .4 .5 .5],...
+    'BackgroundColor',[1 1 1],'FontSize',11);
+
+resetbutton = uicontrol(p,'Style','pushbutton','String','Clear selection',...
+    'Units','normalized','Position',[.02 .03 .95 .12],...
     'Callback',@pb_Callback);
 
-% ax = axes('Units','normalized','Position',[.3 .3 .6 .6]);
-ax = axes('Units','Pixels','Position',[500,150,1024,576]);
+ax = axes('Units','normalized','Position',[.3 .2 .8 .7]);
 
 plot_mesh
 
@@ -84,6 +119,7 @@ end
 axis tight; axis vis3d off;daspect([1 1 1]);
 eval(['material ','dull',';']);eval(['lighting ','gouraud',';']);
 cam = camlight('headlight','infinite');
+set(gcf,'color','w');
 
 hold off
 
@@ -109,9 +145,11 @@ hold off
         
         hold off
         
-        set(braintext,'String',E);
-        set(motortext,'String',e1);
-        set(visualtext,'String',e2);
+        set(braintext,'String',sprintf('%d%%',E/maxE*100));
+        set(motortext,'String',sprintf('%d%%',e1/maxe1*100));
+        set(visualtext,'String',sprintf('%d%%',e2/maxe2*100));
+        set(languagetext,'String',sprintf('%d%%',e3/maxe3*100));
+
 
     end
 
@@ -121,16 +159,21 @@ hold off
         Aprime(:,h) = 0;
         Aprime(h,:) = 0;
         Dprime = distance_bin(Aprime);
-        d1prime = Dprime(1:5,1:5);
-        d2prime = Dprime(5:8,5:8);
+        d1prime = Dprime(6:9,6:9);
+        d2prime = Dprime(3:6,3:6);
+        d3prime = Dprime(1:3,1:3);
         [lambda,Eprime,~,~,d] = charpath(Dprime,0,1);
         [~,e1prime] = charpath(d1prime,0,1);
-        [~,e2prime] = charpath(d2prime,0,1);      
+        [~,e2prime] = charpath(d2prime,0,1);    
+        [~,e3prime] = charpath(d3prime,0,1);      
+
         B = any(Aprime);
 
-        set(braintext,'String',Eprime);
-        set(motortext,'String',e1prime);
-        set(visualtext,'String',e2prime);
+        set(braintext,'String',sprintf('%d%%',round(Eprime/maxE*100)));
+        set(motortext,'String',sprintf('%d%%',round(e1prime/maxe1*100)));
+        set(visualtext,'String',sprintf('%d%%',round(e2prime/maxe2*100)));
+        set(languagetext,'String',sprintf('%d%%',round(e3prime/maxe3*100)));
+
         cla(ax);
         
         plot_mesh
@@ -166,7 +209,7 @@ hold off
     end
 
     function plot_mesh
-        SurfFileName='BrainMesh_ICBM152Left.nv';
+        SurfFileName='BrainMesh_ICBM152Right.nv';
         fid=fopen(SurfFileName);
         data = textscan(fid,'%f','CommentStyle','#');
         surf.vertex_number = data{1}(1);
@@ -187,9 +230,13 @@ hold off
         
         switch surf.sphere(i,4)
             case 1
-                c = [1 1 0];
+                c = [1 1 0]; %yellow
             case 2
-                c = [0 1 1];
+                c = [1 0 1]; %magenta
+            case 3
+                c = [0 1 1]; %cyan
+            case 4
+                c = [0 1 0]; %green
         end
         
         if B(1,i) == 0
@@ -370,6 +417,13 @@ hold off
         
         % Diameter of graph
         diameter   = max(ecc);
+    end
+
+    function info
+        caudate='The caudate nucleus is part of the basal ganglia, and plays an important role in motor memory and associative learning.';
+        IFG='The inferior frontal gyrus is the home of Broca''s area, a famous structure. Damage to this area causes non-fluent aphasia, which impairs an individual''s ability to produce sentences.';
+        instructions = sprintf('Our ability to see, move, and speak depends on brain connectivity. Connected brain regions form networks. Stroke can cause damage to many of these structures, causing network disconnection. \nBy clicking on a specific node in the box below, you can see how a stroke can damage network communication, causing a loss of function. Hold down the ctrl button (bottom left of keyboard) while clicking to select multiple areas at once.');
+
     end
 
 end
