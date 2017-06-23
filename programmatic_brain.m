@@ -2,12 +2,10 @@ function programmatic_brain
 
 close
 
-%MAKE LINES TRANSLUCENT? add info about half brain; add front back rotator;
-%legend in bottom
 %make adjacency matrix
 V = [0	1	0	1	0	0	0	0	1	0	0	0	0	1	0	0	0	0	1	1	0	0	1	0	0	0	1	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	1	0	1	1	1	0	0	0	0	0];
 
-info
+infostr = information;
 
 M = triu(ones(10)); %based on number of nodes; way to calculate this easier I'm sure
 M(M==1) = V;
@@ -17,7 +15,6 @@ D = distance_bin(A);
 d1 = D(6:9,6:9); %motor network
 d2 = D(3:6,3:6); %visual network
 d3 = D(1:3,1:3); %language network
-% d3 = D(1:3,1:3)
 [lambda,E,~,~,d] = charpath(D,0,1);
 [~,e1] = charpath(d1,0,1);
 [~,e2] = charpath(d2,0,1);
@@ -39,7 +36,7 @@ surf.nsph = size(surf.sphere,1); %number nodes
 labels = surf.label.';
 
 f = figure('Name','Simulate a stroke','Visible','on',...
-    'Position',[0 0 800 600]);
+    'Position',[0 0 1600 900]);
 %position = [left bottom width height]
 
 %  Construct the components.
@@ -72,8 +69,8 @@ languageheader = uipanel(p2,'Title','Language Network','Position',[.67 .55 .3 .4
 brainheader = uipanel(p2,'Title','Whole brain','Position',[.03 .07 .94 .4],...
     'BackgroundColor',[1 1 1],'FontSize',11);
 
-nodeinfo = uicontrol(p3,'Style','text','String',caudate,...
-    'HorizontalAlignment','left','BackgroundColor',[1 1 1],...
+nodeinfo = uicontrol(p3,'Style','text','String','',...
+    'HorizontalAlignment','left','BackgroundColor',[1 1 1],'FontSize',10,...
         'Units','normalized','Position',[.02 .04 .95 .95]);
     
 instructiontext = uicontrol(p4,'Style','text','String',instructions,...
@@ -101,7 +98,32 @@ resetbutton = uicontrol(p,'Style','pushbutton','String','Clear selection',...
     'Units','normalized','Position',[.02 .03 .95 .12],...
     'Callback',@pb_Callback);
 
-ax = axes('Units','normalized','Position',[.3 .2 .8 .7]);
+motorlegend = axes('Parent',motorheader,'Units','normalized','Position',[.02 .26 .35 .55]);
+[x,y,z]=sphere(100); %matrices of unit sphere
+Node=mesh(x,y,z,'EdgeColor','none');
+set(Node,'FaceColor',[0 1 1]);
+axis tight; axis vis3d off;daspect([1 1 1]);
+eval(['material ','dull',';']);eval(['lighting ','gouraud',';']);
+cam = camlight('headlight','infinite');
+
+visuallegend = axes('Parent',visualheader,'Units','normalized','Position',[.02 .26 .35 .55]);
+[x,y,z]=sphere(100); %matrices of unit sphere
+Node=mesh(x,y,z,'EdgeColor','none');
+set(Node,'FaceColor',[1 0 1]);
+axis tight; axis vis3d off;daspect([1 1 1]);
+eval(['material ','dull',';']);eval(['lighting ','gouraud',';']);
+cam = camlight('headlight','infinite');
+
+languagelegend = axes('Parent',languageheader,'Units','normalized','Position',[.02 .26 .35 .55]);
+[x,y,z]=sphere(100); %matrices of unit sphere
+Node=mesh(x,y,z,'EdgeColor','none');
+set(Node,'FaceColor',[1 1 0]);
+axis tight; axis vis3d off;daspect([1 1 1]);
+eval(['material ','dull',';']);eval(['lighting ','gouraud',';']);
+cam = camlight('headlight','infinite');
+
+
+ax = axes('Units','normalized','Position',[.28 .18 .8 .7]);
 
 plot_mesh
 
@@ -123,12 +145,17 @@ set(gcf,'color','w');
 
 hold off
 
+
+
+
     function pb_Callback(hObject,eventdata)
         set(lb,'Value',[]);
         cla(ax);
         plot_mesh
         B = any(A); 
         [surf.ncyl,surf.cylinder] = prep_network(A);
+        set(nodeinfo,'String','');
+
 
         hold on
         for i = 1:surf.nsph
@@ -156,6 +183,9 @@ hold off
     function lb_Callback(hObject,eventdata)
         Aprime = A;
         h = hObject.Value;
+        set(nodeinfo,'String','');
+        set(nodeinfo,'String',sprintf('%s',infostr{h}));
+
         Aprime(:,h) = 0;
         Aprime(h,:) = 0;
         Dprime = distance_bin(Aprime);
@@ -217,13 +247,25 @@ hold off
         surf.ntri = data{1}(3*surf.vertex_number+2);
         surf.tri = reshape(data{1}(3*surf.vertex_number+3:end),[3,surf.ntri])';
         Brain=trisurf(surf.tri,surf.coord(1,:),surf.coord(2,:),surf.coord(3,:),'EdgeColor','none');
-%         whitebg(gcf,[1,1,1]);
-%         set(gcf,'Color',[1,1,1],'InvertHardcopy','off');
         eval(['material ','dull',';']); eval(['shading ','interp',';']);axis off
         set(Brain,'FaceColor',[.95,.95,.95]);
         set(Brain,'FaceAlpha',.3);
         daspect([1 1 1])
         view(90,0);
+        text(15,75,15,'Front',...
+            'FontName','Arial','FontWeight','bold','FontAngle','normal','FontSize',16,...
+            'FontUnits','points');
+        text(15,-120,15,'Back',...
+            'FontName','Arial','FontWeight','bold','FontAngle','normal','FontSize',16,...
+            'FontUnits','points');
+        text(15,-15,90,'Top',...
+            'FontName','Arial','FontWeight','bold','FontAngle','normal','FontSize',16,...
+            'FontUnits','points');
+        text(15,-15,-60,'Bottom',...
+            'FontName','Arial','FontWeight','bold','FontAngle','normal','FontSize',16,...
+            'FontUnits','points');
+
+
     end
 
     function draw_sphere(surf,i,B)
@@ -419,10 +461,19 @@ hold off
         diameter   = max(ecc);
     end
 
-    function info
-        caudate='The caudate nucleus is part of the basal ganglia, and plays an important role in motor memory and associative learning.';
-        IFG='The inferior frontal gyrus is the home of Broca''s area, a famous structure. Damage to this area causes non-fluent aphasia, which impairs an individual''s ability to produce sentences.';
+    function infostr = information
+        IFG = 'The frontal lobes hold Broca''s area. Damage to this area causes non-fluent aphasia, which impairs an individual''s ability to produce sentences.';
+        ACG = 'The anterior portion of the cingulate gyrus may be important for monitoring and controlling language in multilingual individuals.';
+        ITG = 'The temporal lobes play an important role in sensation and speech. The connection with the visual cortex allows us to identify what object we are viewing (the "what" pathway). The temporal lobes also hold Wernicke''s area. Damage to this are produces fluent aphasia, which impairs an individual''s ability to produce meaningful speech.';
+        CAL = 'The visual cortex in the occipital lobe is a crucial area for vision. Damage to this structure will cause perceptual blindness (e.g. can still see things with the eyes, but cannot process them with the brain).';
+        IPG = 'The parietal lobes are important for sensation. The connection with the visual cortex allows us to locate objects in space (the "where" pathway).';
+        THA = 'The thalamus plays an important role in relaying sensory and motor signals through the brain. It is important in multiple brain networks, and as a result damage to this structure will impair efficiency in multiple networks.';
+        MCG = 'The middle portion of the cingulate gyrus holds nerve fibres that connect the motor cortex with the rest of the brain.';
+        PreCG = 'The motor cortex is important for movement. Different parts of the body are controlled by different parts of the motor cortex.';
+        SMA = 'The supplementary motor area is closely connected to the motor cortex, and is involved in the planning of movements.';
+        HIPP = 'The hippocampus is an important structure for long-term memory. However, it is not part of the visual, motor, or language networks in this exhibit. Here, damage to the hippocampus will reduce whole brain efficiency, but not the efficiency of the subnetworks. In reality, however, damage to the hippocampus can result in more than just memory deficits.';
         instructions = sprintf('Our ability to see, move, and speak depends on brain connectivity. Connected brain regions form networks. Stroke can cause damage to many of these structures, causing network disconnection. \nBy clicking on a specific node in the box below, you can see how a stroke can damage network communication, causing a loss of function. Hold down the ctrl button (bottom left of keyboard) while clicking to select multiple areas at once.');
+        infostr = {IFG ACG ITG CAL IPG THA MCG PreCG SMA HIPP};
 
     end
 
